@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <title>Booking System</title>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <script>
+            let countdownTimer;
+            let timeRemaining = 600; // 10 minutes in seconds
+
+            function startCountdown() {
+                countdownTimer = setInterval(function() {
+                    timeRemaining--;
+                    updateTimerDisplay();
+                    
+                    if (timeRemaining <= 0) {
+                        clearInterval(countdownTimer);
+                        releaseBookedChairs();
+                        alert("Time's up! All selected seats have been released.");
+                    }
+                }, 1000);
+            }
+
+            function updateTimerDisplay() {
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                const timerDisplay = document.getElementById('countdown-timer');
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Change color when time is running low (last 2 minutes)
+                if (timeRemaining <= 120) {
+                    timerDisplay.style.color = '#dc3545'; // Red color
+                    timerDisplay.style.fontWeight = 'bold';
+                } else if (timeRemaining <= 300) {
+                    timerDisplay.style.color = '#ffc107'; // Yellow color
+                }
+            }
+
+            function releaseBookedChairs() {
+                const bookedChairs = document.querySelectorAll('.chair[data-booked="true"]');
+                bookedChairs.forEach(function(chair) {
+                    const seatLabel = chair.querySelector('span');
+                    chair.style.backgroundColor = 'white';
+                    chair.removeAttribute('data-booked');
+                    if (seatLabel) seatLabel.style.color = '#333';
+                });
+                
+                // Reset button state
+                const button = document.getElementById('bookSeatsButton');
+                button.disabled = true;
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-default');
+                button.innerHTML = 'Book Now'; // Reset button text
+            }
+
+            function resetTimer() {
+                if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                }
+                timeRemaining = 600; // Reset to 10 minutes
+                updateTimerDisplay();
+                startCountdown();
+            }
+
+            function updateFillingFastIndicator() {
+                const totalSeats = document.querySelectorAll('.chair').length;
+                const reservedSeats = document.querySelectorAll('.chair[style*="background-color: red"]').length;
+                const bookedSeats = document.querySelectorAll('.chair[data-booked="true"]').length;
+                const occupiedSeats = reservedSeats + bookedSeats;
+                const occupancyPercentage = (occupiedSeats / totalSeats) * 100;
+                
+                const indicator = document.getElementById('filling-fast-indicator');
+                
+                if (occupancyPercentage >= 70) {
+                    indicator.style.display = 'block';
+                    indicator.innerHTML = `
+                        <i class="fas fa-fire"></i>
+                        <span>Filling Fast!</span>
+                        <div class="occupancy-text">${Math.round(occupancyPercentage)}% seats taken</div>
+                    `;
+                    
+                    // Add pulsing animation for urgency
+                    indicator.classList.add('pulsing');
+                } else {
+                    indicator.style.display = 'none';
+                    indicator.classList.remove('pulsing');
+                }
+            }
+
+            function selectedSeats() {
+                const selectedChairs = [];
+                const chairs = document.querySelectorAll('.chair[data-booked="true"]');
+                const button = document.getElementById('bookSeatsButton');
+
+                button.innerHTML = `Book Now (${chairs.length})`; // Update button text with selected seats count
+                
+                if(chairs.length > 0) {
+                    
+                    button.disabled = false; // Enable the button if at least one chair is selected 
+                    button.classList.remove('btn-default'); // Remove default class
+                    button.classList.add('btn-primary'); // Add class to the button
+                    
+                    // Start or restart timer when first seat is selected
+                    if (chairs.length === 1 && timeRemaining === 600) {
+                        startCountdown();
+                    }
+                } else {
+                    
+                    button.disabled = true; // Disable the button if no chairs are selected
+                    button.classList.remove('btn-primary'); // Remove primary class
+                    button.classList.add('btn-default'); // Add default class
+                    
+                    // Stop timer if no seats are selected
+                    if (countdownTimer) {
+                        clearInterval(countdownTimer);
+                        timeRemaining = 600;
+                        updateTimerDisplay();
+                    }
+                }
+                
+                // Update filling fast indicator
+                updateFillingFastIndicator();
+                
+                // Remove alert for better UX
+                // alert("Selected Seats: " + chairs.length);
+            }
+
+            document.addEventListener("DOMContentLoaded", function() {
+
+                let reservedChairs = ['A1', 'A2', 'A3', 'A4', 'A5', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20',
+                                     'B1', 'B2', 'B3', 'B10', 'B11', 'B12', 'B18', 'B19', 'B20',
+                                     'C1', 'C3', 'C5', 'C7', 'C9', 'C11', 'C13', 'C15', 'C17', 'C19',
+                                     'D1', 'D2', 'D5', 'D8', 'D12', 'D15', 'D18', 'D19', 'D20',
+                                     'E3', 'E6', 'E9', 'E12', 'E15', 'E18',
+                                     'F2', 'F4', 'F6', 'F8', 'F10', 'F12', 'F14', 'F16', 'F18', 'F20',
+                                     'G1', 'G3', 'G5', 'G7', 'G9', 'G11', 'G13', 'G15', 'G17', 'G19',
+                                     '11', '12', '13', '14', '15', '116', '117', '118', '119', '120',
+                                     '21', '22', '23', '24', '25', '216', '217', '218', '219', '220',
+                                     '31', '33', '35', '37', '39', '311', '313', '315', '317', '319']; // Include numbered rows
+                
+
+                let chairCount = 20; // Number of chairs
+                let chairRows = 50; // Number of rows
+                let chairContainer = document.querySelector('.seating-container');
+
+                // Create chairs dynamically
+                for (let i = 0; i < chairRows; i++) {
+                    // Add section dividers with labels
+                    if (i === 0 || i === 10 || i === 20 || i === 30 || i === 40) {
+                        let sectionDiv = document.createElement('div');
+                        sectionDiv.className = 'section-divider';
+                        
+                        let sectionLabel = document.createElement('div');
+                        sectionLabel.className = 'section-label';
+                        
+                        if (i === 0) sectionLabel.textContent = 'BACK SECTION';
+                        else if (i === 10) sectionLabel.textContent = 'EXECUTIVE SECTION';
+                        else if (i === 20) sectionLabel.textContent = 'PREMIUM SECTION';
+                        else if (i === 30) sectionLabel.textContent = 'MIDDLE SECTION';
+                        else if (i === 40) sectionLabel.textContent = 'FRONT SECTION';
+                        
+                        sectionDiv.appendChild(sectionLabel);
+                        chairContainer.appendChild(sectionDiv);
+                    }
+                    
+                    let rowDiv = document.createElement('div');
+                    rowDiv.className = 'row justify-content-center';
+                    rowDiv.style.display = 'flex';
+                    rowDiv.style.alignItems = 'center';
+                    
+                    // Add dynamic gaps between sections
+                    let marginBottom = '10px';
+                    if (i === 9 || i === 19 || i === 29 || i === 39) { // Add larger gaps after every 10 rows
+                        marginBottom = '30px'; // Aisle gap
+                    } else if (i === 4 || i === 14 || i === 24 || i === 34 || i === 44) { // Smaller gaps after every 5 rows
+                        marginBottom = '20px'; // Section gap
+                    }
+                    
+                    rowDiv.style.marginBottom = marginBottom;
+                    
+                    // Create row label (A, B, C, etc., then 1, 2, 3, etc.)
+                    let rowLabel = document.createElement('div');
+                    rowLabel.className = 'row-label';
+                    
+                    let rowIdentifier;
+                    if (i < 26) {
+                        // A-Z for first 26 rows
+                        rowIdentifier = String.fromCharCode(65 + i);
+                    } else {
+                        // Numbers starting from 1 for rows after Z
+                        rowIdentifier = (i - 25).toString();
+                    }
+                    
+                    rowLabel.textContent = rowIdentifier;
+                    rowLabel.style.fontWeight = 'bold';
+                    rowLabel.style.fontSize = '18px';
+                    rowLabel.style.marginRight = '15px';
+                    rowLabel.style.minWidth = '20px';
+                    rowLabel.style.textAlign = 'center';
+                    rowDiv.appendChild(rowLabel);
+                    
+                    // Create first group of 5 chairs
+                    let firstGroup = document.createElement('div');
+                    firstGroup.className = 'chair-group';
+                    firstGroup.style.display = 'flex';
+                    firstGroup.style.marginRight = '20px';
+                    
+                    for (let j = 0; j < 5; j++) {
+                        let chairDiv = document.createElement('div');
+                        chairDiv.className = 'chair';
+                        
+                        let rowIdentifier;
+                        if (i < 26) {
+                            rowIdentifier = String.fromCharCode(65 + i);
+                        } else {
+                            rowIdentifier = (i - 25).toString();
+                        }
+                        
+                        let seatNumber = j + 1;
+                        chairDiv.setAttribute('data-chair-id', rowIdentifier + seatNumber);
+                        chairDiv.setAttribute('data-seat-number', seatNumber);
+                        chairDiv.style.backgroundColor = 'white';
+                        chairDiv.style.margin = '5px';
+                        chairDiv.style.display = 'inline-block';
+                        chairDiv.style.position = 'relative';
+                        
+                        // Add seat number inside chair
+                        let seatLabel = document.createElement('span');
+                        seatLabel.textContent = seatNumber;
+                        seatLabel.style.fontSize = '12px';
+                        seatLabel.style.fontWeight = 'bold';
+                        seatLabel.style.color = '#333';
+                        seatLabel.style.position = 'absolute';
+                        seatLabel.style.top = '50%';
+                        seatLabel.style.left = '50%';
+                        seatLabel.style.transform = 'translate(-50%, -50%)';
+                        chairDiv.appendChild(seatLabel);
+                        
+                        firstGroup.appendChild(chairDiv);
+                    }
+                    
+                    // Create middle group of 10 chairs
+                    let middleGroup = document.createElement('div');
+                    middleGroup.className = 'chair-group';
+                    middleGroup.style.display = 'flex';
+                    middleGroup.style.marginRight = '20px';
+                    
+                    for (let j = 5; j < 15; j++) {
+                        let chairDiv = document.createElement('div');
+                        chairDiv.className = 'chair';
+                        
+                        let rowIdentifier;
+                        if (i < 26) {
+                            rowIdentifier = String.fromCharCode(65 + i);
+                        } else {
+                            rowIdentifier = (i - 25).toString();
+                        }
+                        
+                        let seatNumber = j + 1;
+                        chairDiv.setAttribute('data-chair-id', rowIdentifier + seatNumber);
+                        chairDiv.setAttribute('data-seat-number', seatNumber);
+                        chairDiv.style.backgroundColor = 'white';
+                        chairDiv.style.margin = '5px';
+                        chairDiv.style.display = 'inline-block';
+                        chairDiv.style.position = 'relative';
+                        
+                        // Add seat number inside chair
+                        let seatLabel = document.createElement('span');
+                        seatLabel.textContent = seatNumber;
+                        seatLabel.style.fontSize = '12px';
+                        seatLabel.style.fontWeight = 'bold';
+                        seatLabel.style.color = '#333';
+                        seatLabel.style.position = 'absolute';
+                        seatLabel.style.top = '50%';
+                        seatLabel.style.left = '50%';
+                        seatLabel.style.transform = 'translate(-50%, -50%)';
+                        chairDiv.appendChild(seatLabel);
+                        
+                        middleGroup.appendChild(chairDiv);
+                    }
+                    
+                    // Create last group of 5 chairs
+                    let lastGroup = document.createElement('div');
+                    lastGroup.className = 'chair-group';
+                    lastGroup.style.display = 'flex';
+                    
+                    for (let j = 15; j < 20; j++) {
+                        let chairDiv = document.createElement('div');
+                        chairDiv.className = 'chair';
+                        
+                        let rowIdentifier;
+                        if (i < 26) {
+                            rowIdentifier = String.fromCharCode(65 + i);
+                        } else {
+                            rowIdentifier = (i - 25).toString();
+                        }
+                        
+                        let seatNumber = j + 1;
+                        chairDiv.setAttribute('data-chair-id', rowIdentifier + seatNumber);
+                        chairDiv.setAttribute('data-seat-number', seatNumber);
+                        chairDiv.style.backgroundColor = 'white';
+                        chairDiv.style.margin = '5px';
+                        chairDiv.style.display = 'inline-block';
+                        chairDiv.style.position = 'relative';
+                        
+                        // Add seat number inside chair
+                        let seatLabel = document.createElement('span');
+                        seatLabel.textContent = seatNumber;
+                        seatLabel.style.fontSize = '12px';
+                        seatLabel.style.fontWeight = 'bold';
+                        seatLabel.style.color = '#333';
+                        seatLabel.style.position = 'absolute';
+                        seatLabel.style.top = '50%';
+                        seatLabel.style.left = '50%';
+                        seatLabel.style.transform = 'translate(-50%, -50%)';
+                        chairDiv.appendChild(seatLabel);
+                        
+                        lastGroup.appendChild(chairDiv);
+                    }
+                    
+                    rowDiv.appendChild(firstGroup);
+                    rowDiv.appendChild(middleGroup);
+                    rowDiv.appendChild(lastGroup);
+                    chairContainer.appendChild(rowDiv);
+                }
+
+
+                const chairs = document.querySelectorAll('.chair');
+                chairs.forEach(function(chair) {
+                    chair.addEventListener('click', function() {
+                        const seatLabel = chair.querySelector('span');
+                        if (chair.style.backgroundColor === 'red') {
+                            // alert("This seat is reserved and cannot be booked.");
+                            return; // Exit if the seat is reserved
+                        }
+                        else if (chair.style.backgroundColor === 'white') {
+                            chair.style.backgroundColor = 'green';
+                            chair.setAttribute('data-booked', 'true');
+                            if (seatLabel) seatLabel.style.color = 'white';
+                        } else {
+                            chair.style.backgroundColor = 'white';
+                            chair.removeAttribute('data-booked');
+                            if (seatLabel) seatLabel.style.color = '#333';
+                        }
+                        selectedSeats(); // Call the function to update selected seats count
+                        console.log('Seat ' + chair.getAttribute('data-chair-id') + ' booked: ' + chair.hasAttribute('data-booked'));
+                    });
+                });
+
+                reservedChairs.forEach(function(chairId) {
+                    const chair = document.querySelector('.chair[data-chair-id="' + chairId + '"]');
+                    if (chair) {
+                        chair.style.backgroundColor = 'red'; // Change color to indicate reservation
+                    }
+                });
+
+                // Initial check for filling fast indicator
+                updateFillingFastIndicator();
+
+                document.getElementById('bookSeatsButton').addEventListener('click', function() {
+                    const bookedChairs = document.querySelectorAll('.chair[data-booked="true"]');
+                    if (bookedChairs.length > 0) {
+                        // Stop the countdown timer
+                        if (countdownTimer) {
+                            clearInterval(countdownTimer);
+                        }
+                        
+                        alert("Booking successful for " + bookedChairs.length + " seats.");
+                        bookedChairs.forEach(function(chair) {
+                            console.log('Booking seat: ' + chair.getAttribute('data-chair-id'));
+                            // chair.style.backgroundColor = 'blue'; // Change color to indicate booking
+                            // chair.removeAttribute('data-booked'); // Remove booked attribute
+                        });
+                        
+                        // Reset timer and button state
+                        timeRemaining = 600;
+                        updateTimerDisplay();
+                        this.disabled = true;
+                        this.classList.remove('btn-primary');
+                        this.classList.add('btn-default');
+                        this.innerHTML = 'Book Now'; // Reset button text
+                    } else {
+                        alert("No seats selected for booking.");
+                    }
+                });
+            });
+
+        </script>
+    </head>
+    <body>
+        <!-- Floating Countdown Timer -->
+        <div class="timer-container-float">
+            <div class="timer-header">Time Remaining</div>
+            <div id="countdown-timer" class="timer-display">10:00</div>
+        </div>
+        
+        <!-- Filling Fast Indicator -->
+        <div id="filling-fast-indicator" class="filling-fast-indicator" style="display: none;">
+            <i class="fas fa-fire"></i>
+            <span>Filling Fast!</span>
+            <div class="occupancy-text">70% seats taken</div>
+        </div>
+        
+        <!-- <h1>Welcome to the Booking System</h1> -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">Booking System</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="seating-container">
+                        <!-- Seating area will be generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Screen Section -->
+            <div class="row justify-content-center mt-5">
+                <div class="col-md-10">
+                    <div class="screen-container">
+                        <div class="screen">
+                            <div class="screen-text">SCREEN</div>
+                        </div>
+                        <div class="screen-shadow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-default mt-3" id="bookSeatsButton">Book Now</button>
+
+        </div>
+    </body>
+</html>
